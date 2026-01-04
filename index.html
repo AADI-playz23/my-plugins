@@ -1,0 +1,348 @@
+Here is the updated code.
+Changes Made:
+ * Resolution Selector Added: Users can now choose between 720p, 1080p, 1440p, and 4K. The math adjusts the FPS accordingly (e.g., 4K is much harder to run than 1080p).
+ * "Show FPS" Button: The long list of games is hidden by default. A button appears at the bottom of the result summary to reveal the list.
+ * Performance Logic: Adjusted to account for resolution scaling.
+Complete HTML/CSS/JS Code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced PC FPS Calculator</title>
+    <style>
+        :root {
+            --primary: #8b5cf6; /* Violet */
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f1f5f9;
+            --accent: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 { text-align: center; color: var(--accent); margin-bottom: 30px; }
+
+        /* INPUT GRID */
+        .builder-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 25px;
+        }
+
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: #334155;
+            color: white;
+            border: 1px solid #475569;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        select:focus { border-color: var(--primary); }
+
+        .btn-analyze {
+            width: 100%;
+            margin-top: 25px;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn-analyze:active { transform: scale(0.98); }
+
+        /* OUTPUT SECTION */
+        #results-area { display: none; }
+
+        .verdict-box {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 20px;
+        }
+
+        .verdict-title { font-size: 1.5rem; font-weight: bold; color: var(--success); margin: 0; }
+        .verdict-desc { color: #94a3b8; margin-top: 5px; }
+
+        .btn-show-fps {
+            display: block;
+            width: 200px;
+            margin: 0 auto;
+            padding: 10px 20px;
+            background: #334155;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .btn-show-fps:hover { background: var(--accent); color: #000; }
+
+        /* TABLE SECTION */
+        #fps-container {
+            display: none; /* Hidden by default */
+            margin-top: 20px;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .fps-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        /* Dynamic FPS Colors */
+        .fps-60 { background: rgba(34, 197, 94, 0.2); color: var(--success); } /* Green */
+        .fps-30 { background: rgba(245, 158, 11, 0.2); color: var(--warning); } /* Orange */
+        .fps-0  { background: rgba(239, 68, 68, 0.2); color: var(--danger); }  /* Red */
+        .fps-100 { background: rgba(56, 189, 248, 0.2); color: var(--accent); box-shadow: 0 0 10px rgba(56,189,248,0.1); } /* Blue/Glowing */
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 PC Performance Calculator</h1>
+    
+    <div class="builder-card">
+        <div class="grid-inputs">
+            <div>
+                <label>Resolution Target</label>
+                <select id="resolution">
+                    <option value="1.3">720p (HD)</option>
+                    <option value="1.0" selected>1080p (FHD)</option>
+                    <option value="0.7">1440p (2K)</option>
+                    <option value="0.35">2160p (4K)</option>
+                </select>
+            </div>
+            <div>
+                <label>Processor (CPU)</label>
+                <select id="cpu">
+                    <option value="20">Intel i3 / Ryzen 3</option>
+                    <option value="50">Intel i5 / Ryzen 5</option>
+                    <option value="80">Intel i7 / Ryzen 7</option>
+                    <option value="100">Intel i9 / Ryzen 9</option>
+                </select>
+            </div>
+            <div>
+                <label>Graphics Card (GPU)</label>
+                <select id="gpu">
+                    <option value="15">Integrated Graphics</option>
+                    <option value="40">GTX 1650 / RX 6500</option>
+                    <option value="60">RTX 3060 / RX 6600</option>
+                    <option value="85">RTX 4070 / RX 7800</option>
+                    <option value="100">RTX 4090 / RX 7900</option>
+                </select>
+            </div>
+            <div>
+                <label>RAM Memory</label>
+                <select id="ram">
+                    <option value="0.6">4GB (Low)</option>
+                    <option value="0.9">8GB (Standard)</option>
+                    <option value="1.0">16GB (Good)</option>
+                    <option value="1.05">32GB (Best)</option>
+                </select>
+            </div>
+            <div>
+                <label>Storage Speed</label>
+                <select id="storage">
+                    <option value="hdd">HDD (Slow)</option>
+                    <option value="ssd">SSD (Fast)</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn-analyze" onclick="analyzePC()">Analyze Performance</button>
+    </div>
+
+    <div id="results-area" class="builder-card" style="display:none;">
+        <div class="verdict-box">
+            <h2 class="verdict-title" id="verdict-title">Great Mid-Range PC</h2>
+            <p class="verdict-desc" id="verdict-text">Capable of running most games at 1080p settings.</p>
+        </div>
+
+        <button class="btn-show-fps" onclick="toggleFPS()">Show FPS List ▼</button>
+
+        <div id="fps-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game Title</th>
+                        <th>Resolution</th>
+                        <th>Est. FPS</th>
+                    </tr>
+                </thead>
+                <tbody id="games-table-body">
+                    </tbody>
+            </table>
+            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin-top:15px;">
+                *Estimates based on typical High settings. 4K assumes DLSS/FSR off.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Game Database with "Heaviness" rating (Lower is easier to run)
+    const games = [
+        { name: "Valorant", heavy: 15 },
+        { name: "Minecraft", heavy: 20 },
+        { name: "CS2 (Counter-Strike)", heavy: 30 },
+        { name: "GTA V", heavy: 40 },
+        { name: "Overwatch 2", heavy: 35 },
+        { name: "Fortnite", heavy: 45 },
+        { name: "Apex Legends", heavy: 50 },
+        { name: "Call of Duty: Warzone", heavy: 65 },
+        { name: "Elden Ring", heavy: 70 },
+        { name: "Red Dead Redemption 2", heavy: 75 },
+        { name: "Cyberpunk 2077", heavy: 90 },
+        { name: "The Witcher 3", heavy: 60 },
+        { name: "Rust", heavy: 65 },
+        { name: "Ark: Survival Ascended", heavy: 95 },
+        { name: "Forza Horizon 5", heavy: 60 },
+        { name: "Roblox", heavy: 10 },
+        { name: "Genshin Impact", heavy: 40 },
+        { name: "Hogwarts Legacy", heavy: 80 },
+        { name: "Starfield", heavy: 85 },
+        { name: "Microsoft Flight Sim", heavy: 95 }
+    ];
+
+    function analyzePC() {
+        // 1. Get Values
+        const cpu = parseInt(document.getElementById('cpu').value);
+        const gpu = parseInt(document.getElementById('gpu').value);
+        const ram = parseFloat(document.getElementById('ram').value);
+        const resMult = parseFloat(document.getElementById('resolution').value);
+        const resText = document.getElementById('resolution').options[document.getElementById('resolution').selectedIndex].text.split(' ')[0];
+
+        // 2. Base Power Calculation
+        // GPU is 70% of the weight, CPU is 30%
+        let systemPower = ((gpu * 0.7) + (cpu * 0.3)) * ram;
+
+        // 3. Update Verdict Text
+        const titleEl = document.getElementById('verdict-title');
+        const textEl = document.getElementById('verdict-text');
+        
+        // Logic for verdict based on resolution context
+        let adjustedScore = systemPower * resMult; // How well it runs the CHOSEN resolution
+        
+        if(adjustedScore > 90) {
+            titleEl.textContent = "Overkill Performance 🚀";
+            titleEl.style.color = "#38bdf8";
+            textEl.textContent = `This PC will crush almost anything at ${resText}.`;
+        } else if(adjustedScore > 60) {
+            titleEl.textContent = "Solid Performance 🔥";
+            titleEl.style.color = "#22c55e";
+            textEl.textContent = `Great experience for ${resText} gaming.`;
+        } else if(adjustedScore > 35) {
+            titleEl.textContent = "Playable / Entry Level ✅";
+            titleEl.style.color = "#f59e0b";
+            textEl.textContent = `Can handle ${resText}, but you may need to lower graphics settings.`;
+        } else {
+            titleEl.textContent = "Struggling ⚠️";
+            titleEl.style.color = "#ef4444";
+            textEl.textContent = `This hardware is too weak for ${resText} gaming. Try a lower resolution.`;
+        }
+
+        // 4. Generate FPS Table (But keep it hidden inside the container)
+        const tbody = document.getElementById('games-table-body');
+        tbody.innerHTML = '';
+
+        games.forEach(game => {
+            // Formula: (System Power / Game Difficulty) * Scaling Constant * Resolution Impact
+            // 60 is the "baseline" multiplier to normalize the numbers
+            let fps = Math.floor((systemPower / game.heavy) * 60 * resMult);
+            
+            // Realism Caps
+            if (fps > 350) fps = 350; // Engine caps
+            if (gpu < 20 && game.heavy > 70) fps = Math.min(fps, 15); // iGPU limit on AAA games
+
+            // Badge Color Logic
+            let badgeClass = 'fps-0'; // Default Red
+            if(fps >= 100) badgeClass = 'fps-100';
+            else if(fps >= 60) badgeClass = 'fps-60';
+            else if(fps >= 30) badgeClass = 'fps-30';
+
+            const row = `
+                <tr>
+                    <td><strong>${game.name}</strong></td>
+                    <td style="color:#94a3b8">${resText}</td>
+                    <td><span class="fps-badge ${badgeClass}">${fps} FPS</span></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+
+        // 5. Reset UI state
+        document.getElementById('results-area').style.display = 'block';
+        document.getElementById('fps-container').style.display = 'none'; // Hide list on new calculation
+        document.querySelector('.btn-show-fps').textContent = "Show FPS List ▼";
+        document.querySelector('.btn-show-fps').style.display = 'block';
+    }
+
+    function toggleFPS() {
+        const container = document.getElementById('fps-container');
+        const btn = document.querySelector('.btn-show-fps');
+
+        if (container.style.display === 'none' || container.style.display === '') {
+            container.style.display = 'block';
+            btn.style.display = 'none'; // Hide button after showing list (cleaner look)
+        } else {
+            container.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
+
